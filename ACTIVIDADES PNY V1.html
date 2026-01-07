@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Mantenimiento PNY</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    padding:20px;min-height:100vh;
+}
+.container{
+    max-width:1500px;margin:0 auto;background:#fff;
+    border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.3);overflow:hidden;
+}
+header{
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    color:#fff;padding:25px;text-align:center;
+}
+header h1{font-size:26px;margin-bottom:5px;}
+.tabs{display:flex;background:#f8f9fa;border-bottom:2px solid #dee2e6;flex-wrap:wrap;}
+.tab-button{
+    flex:1;padding:12px;border:none;background:none;cursor:pointer;
+    font-size:15px;font-weight:600;color:#495057;transition:.3s;
+}
+.tab-button:hover{background:#e9ecef;}
+.tab-button.active{
+    background:#fff;color:#667eea;border-bottom:3px solid #667eea;
+}
+.tab-content{display:none;padding:25px;}
+.tab-content.active{display:block;}
+.form-section{
+    background:#f8f9fa;padding:20px;border-radius:10px;margin-bottom:20px;
+}
+.form-section h2{color:#667eea;margin-bottom:15px;font-size:20px;}
+.form-row{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:12px;margin-bottom:12px;
+}
+.form-group{display:flex;flex-direction:column;}
+label{font-weight:600;margin-bottom:4px;color:#495057;font-size:13px;}
+input[type="text"],input[type="date"],input[type="number"],select,textarea{
+    padding:8px;border:2px solid #dee2e6;border-radius:5px;font-size:13px;
+    transition:border-color .3s;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#667eea;}
+textarea{resize:vertical;min-height:70px;}
+.btn{
+    padding:9px 22px;border:none;border-radius:5px;cursor:pointer;
+    font-size:14px;font-weight:600;transition:.3s;margin-right:6px;margin-top:5px;
+}
+.btn-primary{background:#667eea;color:#fff;}
+.btn-primary:hover{background:#5568d3;transform:translateY(-1px);
+    box-shadow:0 4px 10px rgba(102,126,234,.4);}
+.btn-success{background:#28a745;color:#fff;}
+.btn-success:hover{background:#218838;}
+.btn-danger{background:#dc3545;color:#fff;}
+.btn-danger:hover{background:#c82333;}
+.btn-small{padding:5px 10px;font-size:12px;}
+.table-container{overflow-x:auto;margin-top:15px;}
+table{width:100%;border-collapse:collapse;background:#fff;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);}
+thead{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #dee2e6;font-size:12px;}
+th{font-weight:600;text-transform:uppercase;font-size:11px;}
+tbody tr:hover{background:#f8f9fa;}
+.badge{padding:3px 8px;border-radius:12px;font-size:10px;font-weight:600;text-transform:uppercase;}
+.badge-pending{background:#ffc107;color:#212529;}
+.badge-completed{background:#28a745;color:#fff;}
+.stats-container{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:15px;margin:15px 0;
+}
+.stat-card{
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    color:#fff;padding:15px;border-radius:10px;text-align:center;
+}
+.stat-number{font-size:26px;font-weight:bold;margin-bottom:2px;}
+.stat-label{font-size:12px;opacity:.9;}
+.modal{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;
+}
+.modal.show{display:flex;}
+.modal-content{
+    background:#fff;padding:22px;border-radius:10px;max-width:650px;width:92%;
+    max-height:90vh;overflow-y:auto;
+}
+.modal-header{margin-bottom:10px;}
+.modal-header h3{color:#667eea;}
+.close-modal{
+    float:right;font-size:24px;font-weight:bold;color:#aaa;cursor:pointer;
+}
+.close-modal:hover{color:#000;}
+.filter-section{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+@media(max-width:768px){.form-row{grid-template-columns:1fr;}.tabs{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+    <h1>Sistema de Gestión de Mantenimiento</h1>
+    <p>Mantenimiento de infraestructura - PNY</p>
+</header>
+
+<div class="tabs">
+    <button class="tab-button active" onclick="openTab(event,'hallazgos')">Hallazgos / Solicitudes</button>
+    <button class="tab-button" onclick="openTab(event,'pendientes')">Actividades Pendientes</button>
+    <button class="tab-button" onclick="openTab(event,'realizadas')">Actividades Realizadas</button>
+    <button class="tab-button" onclick="openTab(event,'cronograma')">Cronograma Preventivo</button>
+    <button class="tab-button" onclick="openTab(event,'indicadores')">Indicadores</button>
+</div>
+
+<!-- TAB HALLAZGOS -->
+<div id="hallazgos" class="tab-content active">
+    <div class="form-section">
+        <h2>Registrar nuevo hallazgo / solicitud</h2>
+        <form id="formHallazgo">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sede *</label>
+                    <select id="lugar" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="BERLIN">BERLIN</option>
+                        <option value="SALA DE PROCESO">SALA DE PROCESO</option>
+                        <option value="SEDE BETANIA">SEDE BETANIA</option>
+                        <option value="SEDE PORVENIR">SEDE PORVENIR</option>
+                        <option value="SEDE RIVERA">SEDE RIVERA</option>
+                        <option value="SEDE CAIMOS">SEDE CAIMOS</option>
+                        <option value="SEDE GARZON">SEDE GARZON</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoría *</label>
+                    <select id="categoria" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Media">Media</option>
+                        <option value="Baja">Baja</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha evidencia *</label>
+                    <input type="date" id="fechaEvidencia" required>
+                </div>
+                <div class="form-group">
+                    <label>No. de informe *</label>
+                    <input type="text" id="noInforme" required>
+                </div>
+
+		<div class="form-group">
+                    <label>No. de solicitud *</label>
+                    <input type="text" id="noSolicitud" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Persona que encontró el hallazgo *</label>
+                    <input type="text" id="persona" required>
+                </div>
+                <div class="form-group">
+                    <label>Zona / lugar específico</label>
+                    <input type="text" id="zona">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Descripción del hallazgo *</label>
+                <textarea id="descripcionHallazgo" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Evidencia (URL foto/documento)</label>
+                <input type="text" id="evidencia" placeholder="https://">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Registrar hallazgo</button>
+        </form>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-number" id="totalHallazgos">0</div>
+            <div class="stat-label">Hallazgos registrados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalPendientes">0</div>
+            <div class="stat-label">Actividades pendientes</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalRealizadas">0</div>
+            <div class="stat-label">Actividades realizadas</div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h2 style="margin-bottom:10px;color:#667eea;">Hallazgos registrados</h2>
+        <table id="tablaHallazgos">
+            <thead>
+            <tr>
+                <th>No. informe</th>
+		<th>No. solicitud</th>
+                <th>Fecha</th>
+                <th>Sede</th>
+                <th>Prioridad</th>
+                <th>Zona</th>
+                <th>Descripción</th>
+                <th>Persona</th>
+                <th>Evidencia</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB PENDIENTES -->
+<div id="pendientes" class="tab-content">
+    <div class="filter-section">
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Sede</label>
+            <select id="filtroLugar" onchange="filtrarPendientes()">
+                <option value="">Todas</option>
+                <option value="BERLIN">BERLIN</option>
+                <option value="SALA DE PROCESO">SALA DE PROCESO</option>
+                <option value="SEDE BETANIA">SEDE BETANIA</option>
+                <option value="SEDE PORVENIR">SEDE PORVENIR</option>
+                <option value="SEDE RIVERA">SEDE RIVERA</option>
+                <option value="SEDE CAIMOS">SEDE CAIMOS</option>
+                <option value="SEDE GARZON">SEDE GARZON</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Categoría</label>
+            <select id="filtroCategoria" onchange="filtrarPendientes()">
+                <option value="">Todas</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h2 style="margin-bottom:10px;color:#667eea;">Actividades por realizar</h2>
+        <table id="tablaPendientes">
+            <thead>
+            <tr>
+                <th>No. informe</th>
+		<th>No. solicitud</th>
+                <th>Fecha hallazgo</th>
+                <th>Sede</th>
+                <th>Prioridad</th>
+                <th>Zona</th>
+                <th>Descripción</th>
+                <th>Responsable hallazgo</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB REALIZADAS -->
+<div id="realizadas" class="tab-content">
+    <div class="filter-section">
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Sede</label>
+            <select id="filtroLugarRealizadas" onchange="filtrarRealizadas()">
+                <option value="">Todas</option>
+                <option value="BERLIN">BERLIN</option>
+                <option value="SALA DE PROCESO">SALA DE PROCESO</option>
+                <option value="SEDE BETANIA">SEDE BETANIA</option>
+                <option value="SEDE PORVENIR">SEDE PORVENIR</option>
+                <option value="SEDE RIVERA">SEDE RIVERA</option>
+                <option value="SEDE CAIMOS">SEDE CAIMOS</option>
+                <option value="SEDE GARZON">SEDE GARZON</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Calificación</label>
+            <select id="filtroCalificacion" onchange="filtrarRealizadas()">
+                <option value="">Todas</option>
+                <option value="Excelente">Excelente</option>
+                <option value="Buena">Buena</option>
+                <option value="Regular">Regular</option>
+                <option value="Deficiente">Deficiente</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Mes</label>
+            <select id="filtroMesRealizadas" onchange="filtrarRealizadas()">
+                <option value="">Todos</option>
+                <option value="01">Enero</option><option value="02">Febrero</option>
+                <option value="03">Marzo</option><option value="04">Abril</option>
+                <option value="05">Mayo</option><option value="06">Junio</option>
+                <option value="07">Julio</option><option value="08">Agosto</option>
+                <option value="09">Septiembre</option><option value="10">Octubre</option>
+                <option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Año</label>
+            <select id="filtroAnioRealizadas" onchange="filtrarRealizadas()">
+                <option value="">Todos</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h2 style="margin-bottom:10px;color:#667eea;">Actividades completadas</h2>
+        <table id="tablaRealizadas">
+            <thead>
+            <tr>
+                <th>No. informe</th>
+		<th>No. solicitud</th>
+                <th>Sede</th>
+                <th>Prioridad</th>
+                <th>Tipo mantto</th>
+                <th>Fecha realización</th>
+                <th>Responsable</th>
+                <th>Herramienta</th>
+                <th>Calificación</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB CRONOGRAMA -->
+<div id="cronograma" class="tab-content">
+    <div class="form-section">
+        <h2>Cronograma de mantenimiento preventivo</h2>
+        <form id="formCronograma">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sede *</label>
+                    <select id="cronSede" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="BERLIN">BERLIN</option>
+                        <option value="SALA DE PROCESO">SALA DE PROCESO</option>
+                        <option value="SEDE BETANIA">SEDE BETANIA</option>
+                        <option value="SEDE PORVENIR">SEDE PORVENIR</option>
+                        <option value="SEDE RIVERA">SEDE RIVERA</option>
+                        <option value="SEDE CAIMOS">SEDE CAIMOS</option>
+                        <option value="SEDE GARZON">SEDE GARZON</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Año *</label>
+                    <input type="number" id="cronAnio" min="2024" max="2035" required>
+                </div>
+                <div class="form-group">
+                    <label>Zona de infraestructura *</label>
+                    <input type="text" id="cronZona" required>
+                </div>
+                <div class="form-group">
+                    <label>Criterio / actividad *</label>
+                    <input type="text" id="cronActividad" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Meses programados</label>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">
+                    <label><input type="checkbox" name="meses" value="01"> Ene</label>
+                    <label><input type="checkbox" name="meses" value="02"> Feb</label>
+                    <label><input type="checkbox" name="meses" value="03"> Mar</label>
+                    <label><input type="checkbox" name="meses" value="04"> Abr</label>
+                    <label><input type="checkbox" name="meses" value="05"> May</label>
+                    <label><input type="checkbox" name="meses" value="06"> Jun</label>
+                    <label><input type="checkbox" name="meses" value="07"> Jul</label>
+                    <label><input type="checkbox" name="meses" value="08"> Ago</label>
+                    <label><input type="checkbox" name="meses" value="09"> Sep</label>
+                    <label><input type="checkbox" name="meses" value="10"> Oct</label>
+                    <label><input type="checkbox" name="meses" value="11"> Nov</label>
+                    <label><input type="checkbox" name="meses" value="12"> Dic</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Agregar al cronograma</button>
+        </form>
+    </div>
+
+    <div class="filter-section">
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Filtrar sede</label>
+            <select id="filtroCronSede" onchange="cargarCronograma()">
+                <option value="">Todas</option>
+                <option value="BERLIN">BERLIN</option>
+                <option value="SALA DE PROCESO">SALA DE PROCESO</option>
+                <option value="SEDE BETANIA">SEDE BETANIA</option>
+                <option value="SEDE PORVENIR">SEDE PORVENIR</option>
+                <option value="SEDE RIVERA">SEDE RIVERA</option>
+                <option value="SEDE CAIMOS">SEDE CAIMOS</option>
+                <option value="SEDE GARZON">SEDE GARZON</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Filtrar año</label>
+            <select id="filtroCronAnio" onchange="cargarCronograma()">
+                <option value="">Todos</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h2 style="margin-bottom:10px;color:#667eea;">Matriz anual de preventivos</h2>
+        <table id="tablaCronograma">
+            <thead>
+            <tr>
+                <th>Sede</th><th>Año</th><th>Zona</th><th>Actividad</th>
+                <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th>
+                <th>May</th><th>Jun</th><th>Jul</th><th>Ago</th>
+                <th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB INDICADORES -->
+<div id="indicadores" class="tab-content">
+    <div class="form-section">
+        <h2>Indicadores anuales de mantenimiento</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Año de análisis</label>
+                <select id="kpiAnio" onchange="actualizarIndicadores()">
+                    <option value="2024">2024</option>
+                    <option value="2025" selected>2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                </select>
+            </div>
+        </div>
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number" id="kpiTotal">0</div>
+                <div class="stat-label">Órdenes realizadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="kpiPrev">0%</div>
+                <div class="stat-label">% mantenimiento preventivo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="kpiCorr">0%</div>
+                <div class="stat-label">% mantenimiento correctivo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="kpiCumplimiento">0%</div>
+                <div class="stat-label">Cumplimiento cronograma</div>
+            </div>
+        </div>
+        <p style="font-size:12px;color:#555;margin-top:5px;">
+            La relación preventivo/correctivo es un KPI clave para medir qué tan proactivo es el mantenimiento y el nivel de cumplimiento del plan anual [web:45][web:73].
+        </p>
+    </div>
+</div>
+
+<!-- MODAL COMPLETAR ACTIVIDAD -->
+<div id="modalCompletar" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="close-modal" onclick="cerrarModal()">&times;</span>
+            <h3>Completar actividad / orden de servicio</h3>
+        </div>
+        <form id="formCompletar">
+            <input type="hidden" id="idActividad">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha de servicio *</label>
+                    <input type="date" id="fechaRealizacion" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de mantenimiento *</label>
+                    <select id="tipoMantenimiento" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="Preventivo">Preventivo</option>
+                        <option value="Correctivo">Correctivo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horas de servicio</label>
+                    <input type="number" id="horasServicio" min="0" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Días de servicio</label>
+                    <input type="number" id="diasServicio" min="0" step="1">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Actividad desarrollada *</label>
+                <textarea id="descripcionActividad" required></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Herramienta / equipo usado *</label>
+                    <input type="text" id="herramienta" required>
+                </div>
+                <div class="form-group">
+                    <label>Responsable de la ejecución *</label>
+                    <input type="text" id="responsable" required>
+                </div>
+                <div class="form-group">
+                    <label>Calificación de la evidencia *</label>
+                    <select id="calificacion" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="Excelente">Excelente</option>
+                        <option value="Buena">Buena</option>
+                        <option value="Regular">Regular</option>
+                        <option value="Deficiente">Deficiente</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Evidencia de actividad (URL)</label>
+                <input type="text" id="evidenciaRealizada" placeholder="https://">
+            </div>
+
+            <div class="form-group">
+                <label>Observaciones</label>
+                <textarea id="observaciones"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Guardar actividad</button>
+            <button type="button" class="btn btn-danger" onclick="cerrarModal()">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL DETALLES -->
+<div id="modalDetalles" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="close-modal" onclick="cerrarModalDetalles()">&times;</span>
+            <h3>Detalle de la orden de servicio</h3>
+        </div>
+        <div id="contenidoDetalles"></div>
+        <button type="button" class="btn btn-primary" onclick="cerrarModalDetalles()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+// ====== DATOS EN LOCALSTORAGE ======
+let hallazgos   = JSON.parse(localStorage.getItem('hallazgos'))   || [];
+let cronograma  = JSON.parse(localStorage.getItem('cronograma'))  || [];
+
+// ====== UTILIDADES ======
+function guardarHallazgos(){localStorage.setItem('hallazgos',JSON.stringify(hallazgos));}
+function guardarCronograma(){localStorage.setItem('cronograma',JSON.stringify(cronograma));}
+
+// ====== TABS ======
+function openTab(ev,tabName){
+    const tabs=document.querySelectorAll('.tab-content');
+    const buttons=document.querySelectorAll('.tab-button');
+    tabs.forEach(t=>t.classList.remove('active'));
+    buttons.forEach(b=>b.classList.remove('active'));
+    document.getElementById(tabName).classList.add('active');
+    ev.target.classList.add('active');
+    if(tabName==='hallazgos') cargarHallazgos();
+    if(tabName==='pendientes') cargarPendientes();
+    if(tabName==='realizadas'){cargarRealizadas();actualizarIndicadores();}
+    if(tabName==='cronograma') cargarCronograma();
+    if(tabName==='indicadores') actualizarIndicadores();
+}
+
+// ====== REGISTRO HALLAZGO ======
+document.getElementById('fechaEvidencia').valueAsDate=new Date();
+
+document.getElementById('formHallazgo').addEventListener('submit',function(e){
+    e.preventDefault();
+    const h={
+        id:Date.now(),
+        lugar:document.getElementById('lugar').value,
+        categoria:document.getElementById('categoria').value,
+        fechaEvidencia:document.getElementById('fechaEvidencia').value,
+        noInforme:document.getElementById('noInforme').value,
+ 	noSolicitud:document.getElementById('noSolicitud').value,
+        persona:document.getElementById('persona').value,
+        zona:document.getElementById('zona').value,
+        descripcionHallazgo:document.getElementById('descripcionHallazgo').value,
+        evidencia:document.getElementById('evidencia').value,
+        estado:'pendiente'
+    };
+
+    hallazgos.push(h);
+    guardarHallazgos();
+    alert('Hallazgo registrado');
+    this.reset();
+    document.getElementById('fechaEvidencia').valueAsDate=new Date();
+    cargarHallazgos();
+    actualizarEstadisticas();
+});
+
+function cargarHallazgos(){
+    const tbody=document.querySelector('#tablaHallazgos tbody');
+    tbody.innerHTML='';
+    hallazgos.forEach(h=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${h.noInforme}</td>
+	    <td>${h.noSolicitud||''}</td>
+            <td>${h.fechaEvidencia||''}</td>
+            <td>${h.lugar}</td>
+            <td>${h.categoria}</td>
+            <td>${h.zona||''}</td>
+            <td>${(h.descripcionHallazgo||'').substring(0,50)}...</td>
+            <td>${h.persona}</td>
+            <td>${h.evidencia?'<a href="'+h.evidencia+'" target="_blank">Ver</a>':'N/A'}</td>
+            <td><button class="btn btn-danger btn-small" onclick="eliminarHallazgo(${h.id})">Eliminar</button></td>`;
+        tbody.appendChild(tr);
+    });
+    actualizarEstadisticas();
+}
+
+// ====== PENDIENTES ======
+function cargarPendientes(){
+    const tbody=document.querySelector('#tablaPendientes tbody');
+    tbody.innerHTML='';
+    let pendientes=hallazgos.filter(h=>h.estado==='pendiente');
+    pendientes.forEach(a=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${a.noInforme}</td>
+            <td>${a.fechaEvidencia}</td>
+            <td>${a.lugar}</td>
+            <td>${a.categoria}</td>
+            <td>${a.zona||''}</td>
+            <td>${(a.descripcionHallazgo||'').substring(0,50)}...</td>
+            <td>${a.persona}</td>
+            <td><span class="badge badge-pending">Pendiente</span></td>
+            <td><button class="btn btn-success btn-small" onclick="abrirModalCompletar(${a.id})">Completar</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+function filtrarPendientes(){
+    const lugar=document.getElementById('filtroLugar').value;
+    const categoria=document.getElementById('filtroCategoria').value;
+    const tbody=document.querySelector('#tablaPendientes tbody');
+    tbody.innerHTML='';
+    let pendientes=hallazgos.filter(h=>h.estado==='pendiente');
+    if(lugar) pendientes=pendientes.filter(h=>h.lugar===lugar);
+    if(categoria) pendientes=pendientes.filter(h=>h.categoria===categoria);
+    pendientes.forEach(a=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${a.noInforme}</td>
+            <td>${a.fechaEvidencia}</td>
+            <td>${a.lugar}</td>
+            <td>${a.categoria}</td>
+            <td>${a.zona||''}</td>
+            <td>${(a.descripcionHallazgo||'').substring(0,50)}...</td>
+            <td>${a.persona}</td>
+            <td><span class="badge badge-pending">Pendiente</span></td>
+            <td><button class="btn btn-success btn-small" onclick="abrirModalCompletar(${a.id})">Completar</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// ====== REALIZADAS ======
+function cargarRealizadas(){
+    const tbody=document.querySelector('#tablaRealizadas tbody');
+    tbody.innerHTML='';
+    let realizadas=hallazgos.filter(h=>h.estado==='realizada');
+    realizadas.forEach(a=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${a.noInforme}</td>
+            <td>${a.lugar}</td>
+            <td>${a.categoria}</td>
+            <td>${a.tipoMantenimiento||''}</td>
+            <td>${a.fechaRealizacion||''}</td>
+            <td>${a.responsable||''}</td>
+            <td>${a.herramienta||''}</td>
+            <td>${a.calificacion||''}</td>
+            <td><button class="btn btn-primary btn-small" onclick="verDetalles(${a.id})">Ver</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+function filtrarRealizadas(){
+    const lugar=document.getElementById('filtroLugarRealizadas').value;
+    const cal=document.getElementById('filtroCalificacion').value;
+    const mes=document.getElementById('filtroMesRealizadas').value;
+    const anio=document.getElementById('filtroAnioRealizadas').value;
+    const tbody=document.querySelector('#tablaRealizadas tbody');
+    tbody.innerHTML='';
+    let realizadas=hallazgos.filter(h=>h.estado==='realizada');
+    if(lugar) realizadas=realizadas.filter(h=>h.lugar===lugar);
+    if(cal)   realizadas=realizadas.filter(h=>h.calificacion===cal);
+    if(mes || anio){
+        realizadas=realizadas.filter(h=>{
+            if(!h.fechaRealizacion) return false;
+            const [y,m]=h.fechaRealizacion.split('-');
+            if(mes && anio) return m===mes && y===anio;
+            if(mes && !anio) return m===mes;
+            if(!mes && anio) return y===anio;
+            return true;
+        });
+    }
+    realizadas.forEach(a=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${a.noInforme}</td>
+            <td>${a.lugar}</td>
+            <td>${a.categoria}</td>
+            <td>${a.tipoMantenimiento||''}</td>
+            <td>${a.fechaRealizacion||''}</td>
+            <td>${a.responsable||''}</td>
+            <td>${a.herramienta||''}</td>
+            <td>${a.calificacion||''}</td>
+            <td><button class="btn btn-primary btn-small" onclick="verDetalles(${a.id})">Ver</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// ====== MODAL COMPLETAR ======
+document.getElementById('fechaRealizacion').valueAsDate=new Date();
+function abrirModalCompletar(id){
+    document.getElementById('idActividad').value=id;
+    document.getElementById('modalCompletar').classList.add('show');
+}
+function cerrarModal(){
+    document.getElementById('modalCompletar').classList.remove('show');
+    document.getElementById('formCompletar').reset();
+    document.getElementById('fechaRealizacion').valueAsDate=new Date();
+}
+
+document.getElementById('formCompletar').addEventListener('submit',function(e){
+    e.preventDefault();
+    const id=parseInt(document.getElementById('idActividad').value);
+    const idx=hallazgos.findIndex(h=>h.id===id);
+    if(idx!==-1){
+        const h=hallazgos[idx];
+        h.estado='realizada';
+        h.fechaRealizacion=document.getElementById('fechaRealizacion').value;
+        h.tipoMantenimiento=document.getElementById('tipoMantenimiento').value;
+        h.descripcionActividad=document.getElementById('descripcionActividad').value;
+        h.herramienta=document.getElementById('herramienta').value;
+        h.responsable=document.getElementById('responsable').value;
+        h.calificacion=document.getElementById('calificacion').value;
+        h.evidenciaRealizada=document.getElementById('evidenciaRealizada').value;
+        h.horasServicio=document.getElementById('horasServicio').value;
+        h.diasServicio=document.getElementById('diasServicio').value;
+        h.observaciones=document.getElementById('observaciones').value;
+        guardarHallazgos();
+        alert('Actividad completada');
+        cerrarModal();
+        cargarPendientes();
+        cargarRealizadas();
+        actualizarEstadisticas();
+        actualizarIndicadores();
+    }
+});
+
+// ====== DETALLES ======
+function verDetalles(id){
+    const a=hallazgos.find(h=>h.id===id);
+    if(!a) return;
+    const div=document.getElementById('contenidoDetalles');
+    div.innerHTML=`
+        <p><strong>No. informe:</strong> ${a.noInforme}</p>
+        <p><strong>Sede:</strong> ${a.lugar}</p>
+        <p><strong>Categoría:</strong> ${a.categoria}</p>
+        <p><strong>Zona:</strong> ${a.zona||''}</p>
+        <p><strong>Fecha hallazgo:</strong> ${a.fechaEvidencia||''}</p>
+        <p><strong>Descripción hallazgo:</strong> ${a.descripcionHallazgo||''}</p>
+        <p><strong>Persona que reporta:</strong> ${a.persona||''}</p>
+        <hr style="margin:10px 0;">
+        <p><strong>Fecha servicio:</strong> ${a.fechaRealizacion||''}</p>
+        <p><strong>Tipo mantenimiento:</strong> ${a.tipoMantenimiento||''}</p>
+        <p><strong>Actividad desarrollada:</strong> ${a.descripcionActividad||''}</p>
+        <p><strong>Herramienta:</strong> ${a.herramienta||''}</p>
+        <p><strong>Responsable:</strong> ${a.responsable||''}</p>
+        <p><strong>Horas:</strong> ${a.horasServicio||''} - <strong>Días:</strong> ${a.diasServicio||''}</p>
+        <p><strong>Calificación:</strong> ${a.calificacion||''}</p>
+        <p><strong>Observaciones:</strong> ${a.observaciones||''}</p>
+        ${a.evidenciaRealizada?('<p><strong>Evidencia:</strong> <a target="_blank" href="'+a.evidenciaRealizada+'">Ver evidencia</a></p>'):''}
+    `;
+    document.getElementById('modalDetalles').classList.add('show');
+}
+function cerrarModalDetalles(){
+    document.getElementById('modalDetalles').classList.remove('show');
+}
+
+// ====== ELIMINAR HALLAZGO ======
+function eliminarHallazgo(id){
+    if(!confirm('¿Eliminar hallazgo?')) return;
+    hallazgos=hallazgos.filter(h=>h.id!==id);
+    guardarHallazgos();
+    cargarHallazgos();
+    cargarPendientes();
+    cargarRealizadas();
+    actualizarEstadisticas();
+    actualizarIndicadores();
+}
+
+// ====== ESTADÍSTICAS BÁSICAS ======
+function actualizarEstadisticas(){
+    document.getElementById('totalHallazgos').textContent=hallazgos.length;
+    document.getElementById('totalPendientes').textContent=hallazgos.filter(h=>h.estado==='pendiente').length;
+    document.getElementById('totalRealizadas').textContent=hallazgos.filter(h=>h.estado==='realizada').length;
+}
+
+// ====== CRONOGRAMA ======
+document.getElementById('formCronograma').addEventListener('submit',function(e){
+    e.preventDefault();
+    const mesesMarcados=Array.from(document.querySelectorAll('input[name="meses"]:checked')).map(c=>c.value);
+    const item={
+        id:Date.now(),
+        sede:document.getElementById('cronSede').value,
+        anio:document.getElementById('cronAnio').value,
+        zona:document.getElementById('cronZona').value,
+        actividad:document.getElementById('cronActividad').value,
+        meses:mesesMarcados
+    };
+    cronograma.push(item);
+    guardarCronograma();
+    alert('Actividad agregada al cronograma');
+    this.reset();
+    cargarCronograma();
+});
+
+function cargarCronograma(){
+    const tbody=document.querySelector('#tablaCronograma tbody');
+    tbody.innerHTML='';
+    const sedeF=document.getElementById('filtroCronSede').value;
+    const anioF=document.getElementById('filtroCronAnio').value;
+    let data=[...cronograma];
+    if(sedeF) data=data.filter(c=>c.sede===sedeF);
+    if(anioF) data=data.filter(c=>c.anio==anioF);
+    data.forEach(c=>{
+        const m=c.meses||[];
+        const t=mm=>m.includes(mm)?'X':'';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td>${c.sede}</td><td>${c.anio}</td><td>${c.zona}</td><td>${c.actividad}</td>
+            <td>${t('01')}</td><td>${t('02')}</td><td>${t('03')}</td><td>${t('04')}</td>
+            <td>${t('05')}</td><td>${t('06')}</td><td>${t('07')}</td><td>${t('08')}</td>
+            <td>${t('09')}</td><td>${t('10')}</td><td>${t('11')}</td><td>${t('12')}</td>
+            <td><button class="btn btn-danger btn-small" onclick="eliminarCronograma(${c.id})">Eliminar</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+function eliminarCronograma(id){
+    if(!confirm('¿Eliminar registro del cronograma?')) return;
+    cronograma=cronograma.filter(c=>c.id!==id);
+    guardarCronograma();
+    cargarCronograma();
+    actualizarIndicadores();
+}
+
+// ====== INDICADORES ======
+function calcularIndicadores(anioSel){
+    const realizadasAnio=hallazgos.filter(h=>{
+        return h.estado==='realizada' &&
+               h.fechaRealizacion &&
+               h.fechaRealizacion.startsWith(anioSel+'-');
+    });
+    const total=realizadasAnio.length;
+    const prev=realizadasAnio.filter(h=>h.tipoMantenimiento==='Preventivo').length;
+    const corr=realizadasAnio.filter(h=>h.tipoMantenimiento==='Correctivo').length;
+    const porcentajePrev=total?((prev/total)*100).toFixed(1):0;
+    const porcentajeCorr=total?((corr/total)*100).toFixed(1):0;
+
+    const programadas=cronograma.filter(c=>c.anio==anioSel).length;
+    const realizadasPrev=prev; // todas las preventivas del año
+    const cumplimiento=programadas?((realizadasPrev/programadas)*100).toFixed(1):0;
+
+    return{total,prev,corr,porcentajePrev,porcentajeCorr,programadas,cumplimiento};
+}
+function actualizarIndicadores(){
+    const anio=document.getElementById('kpiAnio').value;
+    const kpi=calcularIndicadores(anio);
+    document.getElementById('kpiTotal').textContent=kpi.total;
+    document.getElementById('kpiPrev').textContent=kpi.porcentajePrev+'%';
+    document.getElementById('kpiCorr').textContent=kpi.porcentajeCorr+'%';
+    document.getElementById('kpiCumplimiento').textContent=kpi.cumplimiento+'%';
+}
+
+// ====== INICIO ======
+cargarHallazgos();
+cargarPendientes();
+cargarRealizadas();
+cargarCronograma();
+actualizarEstadisticas();
+actualizarIndicadores();
+</script>
+</body>
+</html>
